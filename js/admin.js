@@ -10,13 +10,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-/* 🔥 TWÓJ CONFIG */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
   authDomain: "bobywatelkody.firebaseapp.com",
@@ -28,69 +22,72 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-/* 🔐 LOGIN */
-const email = prompt("login");
-const pass = prompt("hasło");
+/* 🔐 PIN */
+const pin = prompt("Podaj PIN");
 
-signInWithEmailAndPassword(auth,email,pass)
-.catch(()=> alert("błąd logowania"));
+if(pin !== "7392"){
+  document.body.innerHTML = "Brak dostępu";
+  throw new Error("blokada");
+}
 
-onAuthStateChanged(auth,user=>{
-  if(user){
-    loadCodes();
-  } else {
-    document.body.innerHTML="Brak dostępu";
-  }
-});
-
-/* 🔥 GENERATOR */
+/* 🔑 GENERATOR KODU */
 function randomCode(){
-  return "XXXX-XXXX-XXXX-XXXX".replace(/X,g=>
+  return "XXXX-XXXX-XXXX-XXXX".replace(/X/g, () =>
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random()*36)]
   );
 }
 
-window.generate = async ()=>{
+/* 🚀 GENEROWANIE */
+async function generate(){
   const nick = document.getElementById("nick").value;
-  if(!nick) return alert("podaj nick");
+
+  if(!nick){
+    alert("Podaj nick");
+    return;
+  }
 
   const code = randomCode();
 
+  console.log("GENERUJE:", code);
+
   await addDoc(collection(db,"codes"),{
-    code,
-    nick,
-    used:false
+    code: code,
+    nick: nick,
+    used: false
   });
 
-  loadCodes();
-};
+  console.log("ZAPISANO");
 
-/* 📋 LOAD */
+  loadCodes();
+}
+
+/* 📥 WCZYTYWANIE KODÓW */
 async function loadCodes(){
   const snap = await getDocs(collection(db,"codes"));
   const container = document.getElementById("codes");
-  container.innerHTML="";
+
+  container.innerHTML = "";
 
   snap.forEach(d=>{
     const data = d.data();
 
     const div = document.createElement("div");
-    div.className="code";
+    div.style.background = "#111";
+    div.style.padding = "12px";
+    div.style.marginBottom = "10px";
+    div.style.borderRadius = "10px";
 
-    div.innerHTML=`
-      <div class="code-info">
+    div.innerHTML = `
+      <div>
         <b>${data.code}</b><br>
-        ${data.nick}<br>
-        <span class="${data.used ? 'used':'active'}">
-          ${data.used ? 'UŻYTY':'AKTYWNY'}
-        </span>
+        👤 ${data.nick}<br>
+        ${data.used ? "❌ UŻYTY" : "✅ AKTYWNY"}
       </div>
 
-      <div class="actions">
-        <button onclick="edit('${d.id}')">✏️</button>
-        <button onclick="del('${d.id}')">🗑️</button>
+      <div style="margin-top:10px;">
+        <button onclick="del('${d.id}')">Usuń</button>
+        <button onclick="edit('${d.id}')">Edytuj</button>
       </div>
     `;
 
@@ -98,20 +95,26 @@ async function loadCodes(){
   });
 }
 
-/* ❌ DELETE */
-window.del = async(id)=>{
+/* ❌ USUWANIE */
+window.del = async (id)=>{
   await deleteDoc(doc(db,"codes",id));
   loadCodes();
 };
 
-/* ✏️ EDIT */
-window.edit = async(id)=>{
-  const nick = prompt("nowy nick");
+/* ✏️ EDYCJA */
+window.edit = async (id)=>{
+  const nick = prompt("Nowy nick:");
   if(!nick) return;
 
   await updateDoc(doc(db,"codes",id),{
-    nick
+    nick: nick
   });
 
   loadCodes();
 };
+
+/* 🔘 PODPIĘCIE PRZYCISKU */
+document.getElementById("genBtn").addEventListener("click", generate);
+
+/* 🚀 START */
+loadCodes();
