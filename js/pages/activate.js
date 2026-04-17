@@ -1,4 +1,3 @@
-// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -8,7 +7,6 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 TWOJA KONFIGURACJA
 const firebaseConfig = {
   apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
   authDomain: "bobywatelkody.firebaseapp.com",
@@ -21,7 +19,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 📦 IndexedDB zapis (TO JEST KLUCZOWE!)
+
+// 🔥 NAJWAŻNIEJSZE — jeśli już aktywowany → od razu login
+if (localStorage.getItem("activated") === "true") {
+  window.location.href = "login.html";
+}
+
+
+// 🔥 zapis aktywacji (tylko raz)
 function saveAuth() {
   const request = indexedDB.open("obywatel_auth", 1);
 
@@ -37,21 +42,20 @@ function saveAuth() {
     const tx = db.transaction("auth_state", "readwrite");
     const store = tx.objectStore("auth_state");
 
-    // 🔥 TO SPRAWDZA LOGIN.HTML
     store.put({
-      refreshToken: "AKTYWNY_USER"
+      refreshToken: "OK",
+      activated: true
     }, "auth_state");
 
     tx.oncomplete = function () {
-      console.log("✅ Zapisano auth_state");
-
-      // 🔥 PRZEJŚCIE DO LOGIN
-      window.location.href = "login.html";
+      localStorage.setItem("activated", "true"); // 🔥 zapis że już aktywowany
+      window.location.href = "login.html"; // 🔥 i KONIEC activate
     };
   };
 }
 
-// 🔑 Sprawdzanie kodu
+
+// 🔑 sprawdzanie kodu
 document.getElementById("activateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -65,33 +69,32 @@ document.getElementById("activateForm").addEventListener("submit", async (e) => 
 
   try {
     const snapshot = await getDocs(collection(db, "codes"));
-
     let found = false;
 
-    snapshot.forEach(async (docSnap) => {
+    for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
 
       if (data.code === key && !data.used) {
         found = true;
 
-        // 🔥 oznacz jako użyty
         await updateDoc(doc(db, "codes", docSnap.id), {
           used: true,
           nick: nick
         });
 
-        alert("✅ Aktywacja udana");
+        alert("✅ Aktywacja OK");
 
-        saveAuth(); // 🔥 TO NAJWAŻNIEJSZE
+        saveAuth();
+        break;
       }
-    });
+    }
 
     if (!found) {
-      alert("❌ Nieprawidłowy kod");
+      alert("❌ Zły kod");
     }
 
   } catch (err) {
     console.error(err);
-    alert("Błąd połączenia z bazą");
+    alert("Błąd Firebase");
   }
 });
