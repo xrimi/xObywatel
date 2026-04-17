@@ -1,15 +1,14 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
+// 🔥 Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
   getDocs,
-  query,
-  where,
-  updateDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// 🔥 TWOJA KONFIGURACJA
 const firebaseConfig = {
   apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
   authDomain: "bobywatelkody.firebaseapp.com",
@@ -22,45 +21,77 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔑 FORM */
-const form = document.getElementById("activateForm");
+// 📦 IndexedDB zapis (TO JEST KLUCZOWE!)
+function saveAuth() {
+  const request = indexedDB.open("obywatel_auth", 1);
 
-form.addEventListener("submit", async (e)=>{
+  request.onupgradeneeded = function (event) {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains("auth_state")) {
+      db.createObjectStore("auth_state");
+    }
+  };
+
+  request.onsuccess = function (event) {
+    const db = event.target.result;
+    const tx = db.transaction("auth_state", "readwrite");
+    const store = tx.objectStore("auth_state");
+
+    // 🔥 TO SPRAWDZA LOGIN.HTML
+    store.put({
+      refreshToken: "AKTYWNY_USER"
+    }, "auth_state");
+
+    tx.oncomplete = function () {
+      console.log("✅ Zapisano auth_state");
+
+      // 🔥 PRZEJŚCIE DO LOGIN
+      window.location.href = "login.html";
+    };
+  };
+}
+
+// 🔑 Sprawdzanie kodu
+document.getElementById("activateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const codeInput = document.getElementById("adminKeyInput").value;
-  const nick = document.getElementById("deviceLabelInput").value;
+  const key = document.getElementById("adminKeyInput").value.trim();
+  const nick = document.getElementById("deviceLabelInput").value.trim();
 
-  if(!codeInput || !nick){
-    alert("uzupełnij dane");
+  if (!key || !nick) {
+    alert("Uzupełnij dane");
     return;
   }
 
-  /* 🔍 SZUKAJ KODU */
-  const q = query(collection(db,"codes"), where("code","==",codeInput));
-  const snap = await getDocs(q);
+  try {
+    const snapshot = await getDocs(collection(db, "codes"));
 
-  if(snap.empty){
-    alert("❌ kod nie istnieje");
-    return;
+    let found = false;
+
+    snapshot.forEach(async (docSnap) => {
+      const data = docSnap.data();
+
+      if (data.code === key && !data.used) {
+        found = true;
+
+        // 🔥 oznacz jako użyty
+        await updateDoc(doc(db, "codes", docSnap.id), {
+          used: true,
+          nick: nick
+        });
+
+        alert("✅ Aktywacja udana");
+
+        saveAuth(); // 🔥 TO NAJWAŻNIEJSZE
+      }
+    });
+
+    if (!found) {
+      alert("❌ Nieprawidłowy kod");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Błąd połączenia z bazą");
   }
-
-  const docSnap = snap.docs[0];
-  const data = docSnap.data();
-
-  if(data.used){
-    alert("❌ kod już użyty");
-    return;
-  }
-
-  /* ✅ OK */
-  await updateDoc(doc(db,"codes",docSnap.id),{
-    used:true,
-    usedBy:nick
-  });
-
-  alert("✅ aktywacja udana");
-
-  /* tutaj możesz przekierować dalej */
-  window.location.href = "login.html";
 });
