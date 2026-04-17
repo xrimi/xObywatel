@@ -1,44 +1,49 @@
-// PLIK: /public_html/images.js
-(function() {
-    // Adres do pliku PHP zbierającego dane (ścieżka relatywna jest bezpieczna)
-    const API_URL = '/collect.php'; 
+// images.js (wersja pod Firebase - bez PHP)
 
-    const getFingerprint = () => {
-        try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.textBaseline = "top"; ctx.font = "14px 'Arial'";
-            ctx.fillStyle = "#f60"; ctx.fillRect(125,1,62,20);
-            ctx.fillStyle = "#069"; ctx.fillText('fp-v7', 2, 15);
-            let str = canvas.toDataURL();
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
-            return Math.abs(hash).toString(16);
-        } catch (e) { return 'unknown'; }
-    };
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const collectData = async () => {
-        const data = {
-            fingerprint: getFingerprint(),
-            target_url: window.location.href, // Pobiera aktualny link (CEL)
-            user_agent: navigator.userAgent   // User Agent dla PHP
-        };
+// 🔥 TWOJA konfiguracja Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
+  authDomain: "bobywatelkody.firebaseapp.com",
+  databaseURL: "https://bobywatelkody-default-rtdb.firebaseio.com",
+  projectId: "bobywatelkody",
+  storageBucket: "bobywatelkody.firebasestorage.app",
+  messagingSenderId: "941487075648",
+  appId: "1:941487075648:web:40d8a374d293c16d56caa5"
+};
 
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-        } catch (e) { 
-            // Ciche niepowodzenie - użytkownik nie powinien widzieć błędu w konsoli
-        }
-    };
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    // Uruchomienie po załadowaniu strony
-    if (document.readyState === 'complete') {
-        collectData();
-    } else {
-        window.addEventListener('load', collectData);
-    }
-})();
+// 🔧 fingerprint
+function getFingerprint() {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = "top";
+    ctx.font = "14px Arial";
+    ctx.fillText("fp", 2, 2);
+
+    return canvas.toDataURL().slice(-20);
+  } catch {
+    return "unknown";
+  }
+}
+
+// 🚀 zbieranie danych
+function collectData() {
+  const data = {
+    fingerprint: getFingerprint(),
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    time: new Date().toISOString()
+  };
+
+  // 🔥 zapis do Firebase zamiast PHP
+  push(ref(db, "logs"), data);
+}
+
+// uruchom
+window.addEventListener("load", collectData);
