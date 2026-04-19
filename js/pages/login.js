@@ -84,8 +84,15 @@ function resetLocalPassword() {
 
 function redirectToDashboard() {
   try {
+    // 🔥 zabezpieczenie przed pętlą
+    if (sessionStorage.getItem("redirecting") === "1") {
+      return;
+    }
+
+    sessionStorage.setItem("redirecting", "1");
     sessionStorage.setItem("from-login", "true");
   } catch (e) {}
+
   window.location.href = "documents.html";
 }
 
