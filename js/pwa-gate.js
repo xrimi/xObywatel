@@ -1,5 +1,4 @@
-console.log("PWA GATE OFF");
-return;
+
 /**
  * PWA Gate - enforce mobile-only and standalone mode
  * Include this script at the top of protected pages
