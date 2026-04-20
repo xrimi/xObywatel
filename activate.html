@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Aktywacja</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      width: 90%;
+      max-width: 420px;
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      border: none;
+      border-radius: 999px;
+      background: #374151;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #111827;
+    }
+
+    #message {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #b91c1c;
+      min-height: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h1>Aktywacja</h1>
+    <p>Wpisz kod aktywacyjny</p>
+
+    <form id="activateForm">
+
+      <input
+        id="keyInput"
+        type="text"
+        placeholder="XXXX-XXXX-XXXX-XXXX"
+        autocomplete="off"
+      />
+
+      <button type="submit">Aktywuj</button>
+
+      <div id="message"></div>
+
+    </form>
+  </div>
+
+  <!-- 🔥 TWÓJ JS -->
+  <script type="module" src="js/pages/activate.js"></script>
+
+</body>
+</html>
