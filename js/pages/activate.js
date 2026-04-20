@@ -6,7 +6,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 FIREBASE
+// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
   authDomain: "bobywatelkody.firebaseapp.com",
@@ -19,7 +19,7 @@ const db = getFirestore(app);
 // 🔑 LOCAL STORAGE KEY
 const STORAGE_KEY = "device_activated";
 
-// 🚀 AUTO SKIP (żeby nie wracało do activate)
+// 🚀 jeśli już aktywowany → login
 if (localStorage.getItem(STORAGE_KEY)) {
   window.location.replace("login.html");
 }
@@ -29,11 +29,16 @@ const form = document.getElementById("activateForm");
 const keyInput = document.getElementById("adminKeyInput");
 const nameInput = document.getElementById("deviceLabelInput");
 
-// 📩 SUBMIT
+// 🧠 NORMALIZACJA KODU
+function normalizeKey(input) {
+  return input.trim().toUpperCase();
+}
+
+// 🚀 SUBMIT
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const key = keyInput.value.trim();
+  const key = normalizeKey(keyInput.value);
   const name = nameInput.value.trim();
 
   if (!key || !name) {
@@ -44,6 +49,8 @@ form.addEventListener("submit", async (e) => {
   try {
     const ref = doc(db, "codes", key);
     const snap = await getDoc(ref);
+
+    console.log("Szukam kodu:", key);
 
     if (!snap.exists()) {
       alert("Nieprawidłowy kod");
@@ -57,7 +64,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // 🔥 oznacz jako użyty w Firebase
+    // 🔥 oznacz jako użyty
     await setDoc(ref, {
       ...data,
       used: true,
@@ -65,21 +72,21 @@ form.addEventListener("submit", async (e) => {
       usedAt: Date.now()
     });
 
-    // 💾 LOCAL STORAGE
+    // 🔥 LOCAL STORAGE
     localStorage.setItem(STORAGE_KEY, "true");
     localStorage.setItem("user_key", key);
 
-    // 🔥 🔥 🔥 TO BYŁ TEN FRAGMENT "DODAJ POD TO" 🔥 🔥 🔥
+    // 🔥 INDEXEDDB FIX (usuwa pętlę)
     const request = indexedDB.open("obywatel_auth", 1);
 
-    request.onupgradeneeded = function () {
+    request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("auth_state")) {
         db.createObjectStore("auth_state");
       }
     };
 
-    request.onsuccess = function () {
+    request.onsuccess = () => {
       const db = request.result;
       const tx = db.transaction("auth_state", "readwrite");
       const store = tx.objectStore("auth_state");
@@ -89,15 +96,13 @@ form.addEventListener("submit", async (e) => {
         activated: true
       }, "auth_state");
     };
-    // 🔥 🔥 🔥 KONIEC FRAGMENTU 🔥 🔥 🔥
 
     alert("Aktywacja udana");
 
-    // 👉 PRZEJŚCIE DO LOGIN
     window.location.replace("login.html");
 
   } catch (err) {
     console.error(err);
-    alert("Błąd");
+    alert("Błąd Firebase");
   }
 });
