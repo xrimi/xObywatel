@@ -1,4 +1,5 @@
-// Zabezpieczenia przed kopiowaniem i menu kontekstowym
+console.log("PROTECTION OFF");
+return;
 (function () {
   "use strict";
 
