@@ -10,7 +10,7 @@ const NETWORK_TIMEOUT = 3000;
 const STATIC_ASSETS = [
     "/",
     "/index.html",
-    "/login_pwa.html",
+    "/login.html",
     "/documents.html",
     "/dowod.html",
     "/diia.html",
