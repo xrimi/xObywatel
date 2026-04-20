@@ -1,3 +1,5 @@
+console.log("API CLIENT OFF");
+return;
 /**
  * API Client with automatic 401 handling
  * Handles token expiration, device unbinding, key deletion, etc.
