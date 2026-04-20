@@ -1,4 +1,5 @@
-/**
+console.log("API CLIENT OFF");
+return;/**
  * PWA Gate - enforce mobile-only and standalone mode
  * Include this script at the top of protected pages
  */
