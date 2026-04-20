@@ -1,152 +1,103 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
-  collection,
-  getDocs,
   doc,
-  updateDoc
+  getDoc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-(function () {
-  "use strict";
+// 🔥 FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
+  authDomain: "bobywatelkody.firebaseapp.com",
+  projectId: "bobywatelkody",
+};
 
-  try {
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    // ================================
-    // 🔁 JEŚLI JUŻ AKTYWOWANY → LOGIN
-    // ================================
-    if (localStorage.getItem("activated") === "true") {
-      console.log("🔁 Już aktywowane → login");
+// 🔑 LOCAL STORAGE KEY
+const STORAGE_KEY = "device_activated";
 
-      document.documentElement.style.display = "none";
-      window.location.replace("login.html");
+// 🚀 AUTO SKIP (żeby nie wracało do activate)
+if (localStorage.getItem(STORAGE_KEY)) {
+  window.location.replace("login.html");
+}
 
-      return; // 💥 zatrzymuje cały skrypt
-    }
+// 📋 ELEMENTY
+const form = document.getElementById("activateForm");
+const keyInput = document.getElementById("adminKeyInput");
+const nameInput = document.getElementById("deviceLabelInput");
 
-    // ================================
-    // 🔧 FIREBASE INIT
-    // ================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
-      authDomain: "bobywatelkody.firebaseapp.com",
-      projectId: "bobywatelkody",
-      storageBucket: "bobywatelkody.firebasestorage.app",
-      messagingSenderId: "941487075648",
-      appId: "1:941487075648:web:40d8a374d293c16d56caa5"
-    };
+// 📩 SUBMIT
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const key = keyInput.value.trim();
+  const name = nameInput.value.trim();
 
-    // ================================
-    // 💾 ZAPIS AKTYWACJI (IndexedDB + localStorage)
-    // ================================
-    function saveAuth() {
-      try {
-        const request = indexedDB.open("obywatel_auth", 1);
-
-        request.onupgradeneeded = function (event) {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains("auth_state")) {
-            db.createObjectStore("auth_state");
-          }
-        };
-
-        request.onsuccess = function (event) {
-          const db = event.target.result;
-
-          try {
-            const tx = db.transaction("auth_state", "readwrite");
-            const store = tx.objectStore("auth_state");
-
-            store.put(
-              {
-                refreshToken: "OK",
-                activated: true
-              },
-              "auth_state"
-            );
-
-            tx.oncomplete = function () {
-              localStorage.setItem("activated", "true");
-
-              console.log("✅ Aktywacja zapisana");
-
-              window.location.replace("login.html");
-            };
-          } catch (e) {
-            console.error("IndexedDB tx error", e);
-            window.location.replace("login.html");
-          }
-        };
-
-        request.onerror = function () {
-          console.error("IndexedDB open error");
-          window.location.replace("login.html");
-        };
-
-      } catch (e) {
-        console.error("IndexedDB crash", e);
-        window.location.replace("login.html");
-      }
-    }
-
-    // ================================
-    // 🔑 OBSŁUGA FORMULARZA
-    // ================================
-    const form = document.getElementById("activateForm");
-
-    if (!form) {
-      console.warn("⚠️ Brak #activateForm → skrypt nieaktywny");
-      return; // 💥 nie blokujemy nic dalej
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const key = document.getElementById("adminKeyInput")?.value.trim();
-      const nick = document.getElementById("deviceLabelInput")?.value.trim();
-
-      if (!key || !nick) {
-        alert("Uzupełnij dane");
-        return;
-      }
-
-      try {
-        const snapshot = await getDocs(collection(db, "codes"));
-        let found = false;
-
-        for (const docSnap of snapshot.docs) {
-          const data = docSnap.data();
-
-          if (data.code === key && !data.used) {
-            found = true;
-
-            await updateDoc(doc(db, "codes", docSnap.id), {
-              used: true,
-              nick: nick
-            });
-
-            alert("✅ Aktywacja OK");
-
-            saveAuth(); // 🔥 zapis + redirect
-            return;
-          }
-        }
-
-        if (!found) {
-          alert("❌ Zły kod");
-        }
-
-      } catch (err) {
-        console.error(err);
-        alert("Błąd Firebase");
-      }
-    });
-
-  } catch (err) {
-    console.error("❌ activate.js crash:", err);
+  if (!key || !name) {
+    alert("Uzupełnij dane");
+    return;
   }
 
-})();
+  try {
+    const ref = doc(db, "codes", key);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      alert("Nieprawidłowy kod");
+      return;
+    }
+
+    const data = snap.data();
+
+    if (data.used) {
+      alert("Kod już użyty");
+      return;
+    }
+
+    // 🔥 oznacz jako użyty w Firebase
+    await setDoc(ref, {
+      ...data,
+      used: true,
+      usedBy: name,
+      usedAt: Date.now()
+    });
+
+    // 💾 LOCAL STORAGE
+    localStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem("user_key", key);
+
+    // 🔥 🔥 🔥 TO BYŁ TEN FRAGMENT "DODAJ POD TO" 🔥 🔥 🔥
+    const request = indexedDB.open("obywatel_auth", 1);
+
+    request.onupgradeneeded = function () {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("auth_state")) {
+        db.createObjectStore("auth_state");
+      }
+    };
+
+    request.onsuccess = function () {
+      const db = request.result;
+      const tx = db.transaction("auth_state", "readwrite");
+      const store = tx.objectStore("auth_state");
+
+      store.put({
+        refreshToken: "ok",
+        activated: true
+      }, "auth_state");
+    };
+    // 🔥 🔥 🔥 KONIEC FRAGMENTU 🔥 🔥 🔥
+
+    alert("Aktywacja udana");
+
+    // 👉 PRZEJŚCIE DO LOGIN
+    window.location.replace("login.html");
+
+  } catch (err) {
+    console.error(err);
+    alert("Błąd");
+  }
+});
