@@ -72,13 +72,46 @@ return;
    * Check if authenticated - uses session cache from index.html validation
    */
   async function isAuthenticated() {
-    try {
-      // Check session cache first (validation done in index.html)
-      const sessionValidated = sessionStorage.getItem("auth_validated");
-      if (sessionValidated === "true") {
-        console.log("[PWA Gate] Session already validated");
-        return true;
-      }
+  try {
+    // 🔥 1. Jeśli session cache jest → OK
+    const sessionValidated = sessionStorage.getItem("auth_validated");
+    if (sessionValidated === "true") {
+      console.log("[PWA Gate] Session already validated");
+      return true;
+    }
+
+    // 🔥 2. Sprawdź IndexedDB (STAŁA autoryzacja)
+    const db = await openDB();
+    const authState = await getFromDB(db, "auth_state");
+
+    // 🔥 BRAK danych → NIE aktywowany
+    if (!authState) {
+      console.log("[PWA Gate] Brak auth_state");
+      return false;
+    }
+
+    // 🔥 JEŚLI masz cokolwiek co oznacza aktywację → uznaj za OK
+    if (
+      authState.refreshToken ||
+      authState.accessToken ||
+      authState.activated === true
+    ) {
+      console.log("[PWA Gate] ✅ Urządzenie aktywowane (IndexedDB)");
+
+      // 🔥 zapisz cache żeby nie sprawdzać znowu
+      sessionStorage.setItem("auth_validated", "true");
+
+      return true;
+    }
+
+    console.log("[PWA Gate] Brak tokenów");
+    return false;
+
+  } catch (err) {
+    console.error("Auth check failed:", err);
+    return false;
+  }
+}
 
       // Fallback: check if device is activated (has refresh token)
       // This shouldn't happen if index.html routing works correctly
