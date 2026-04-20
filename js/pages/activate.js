@@ -24,84 +24,81 @@ if (localStorage.getItem(STORAGE_KEY)) {
   window.location.replace("login.html");
 }
 
-// 📋 ELEMENTY
-const form = document.getElementById("activateForm");
-const keyInput = document.getElementById("adminKeyInput");
-const nameInput = document.getElementById("deviceLabelInput");
+// 👉 WAŻNE: czekamy aż DOM się załaduje
+document.addEventListener("DOMContentLoaded", () => {
 
-// 📩 SUBMIT
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+  const form = document.getElementById("activateForm");
+  const keyInput = document.getElementById("adminKeyInput");
+  const nameInput = document.getElementById("deviceLabelInput");
 
-  // ✅ FIX: trim + lowercase (najczęstszy błąd)
-  const key = keyInput.value.trim().toLowerCase();
-  const name = nameInput.value.trim();
-
-  console.log("Wpisany kod:", key);
-
-  if (!key || !name) {
-    alert("Uzupełnij dane");
+  if (!form || !keyInput || !nameInput) {
+    console.error("Brak elementów DOM!");
     return;
   }
 
-  try {
-    const ref = doc(db, "codes", key);
-    const snap = await getDoc(ref);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-    console.log("Exists:", snap.exists());
+    const key = keyInput.value.trim();
+    const name = nameInput.value.trim();
 
-    if (!snap.exists()) {
-      alert("Nieprawidłowy kod");
+    if (!key || !name) {
+      alert("Uzupełnij dane");
       return;
     }
 
-    const data = snap.data();
+    try {
+      const ref = doc(db, "codes", key);
+      const snap = await getDoc(ref);
 
-    if (data.used) {
-      alert("Kod już użyty");
-      return;
-    }
-
-    // 🔥 update w Firebase
-    await setDoc(ref, {
-      ...data,
-      used: true,
-      usedBy: name,
-      usedAt: Date.now()
-    });
-
-    // 💾 LOCAL STORAGE
-    localStorage.setItem(STORAGE_KEY, "true");
-    localStorage.setItem("user_key", key);
-
-    // 🔥 INDEXEDDB
-    const request = indexedDB.open("obywatel_auth", 1);
-
-    request.onupgradeneeded = function () {
-      const db = request.result;
-      if (!db.objectStoreNames.contains("auth_state")) {
-        db.createObjectStore("auth_state");
+      if (!snap.exists()) {
+        alert("Nieprawidłowy kod");
+        return;
       }
-    };
 
-    request.onsuccess = function () {
-      const db = request.result;
-      const tx = db.transaction("auth_state", "readwrite");
-      const store = tx.objectStore("auth_state");
+      const data = snap.data();
 
-      store.put({
-        refreshToken: "ok",
-        activated: true
-      }, "auth_state");
-    };
+      if (data.used) {
+        alert("Kod już użyty");
+        return;
+      }
 
-    alert("Aktywacja udana");
+      await setDoc(ref, {
+        ...data,
+        used: true,
+        usedBy: name,
+        usedAt: Date.now()
+      });
 
-    // 👉 LOGIN
-    window.location.replace("login.html");
+      localStorage.setItem(STORAGE_KEY, "true");
+      localStorage.setItem("user_key", key);
 
-  } catch (err) {
-    console.error("Firebase error:", err);
-    alert("Błąd połączenia lub brak uprawnień");
-  }
+      const request = indexedDB.open("obywatel_auth", 1);
+
+      request.onupgradeneeded = function () {
+        const db = request.result;
+        if (!db.objectStoreNames.contains("auth_state")) {
+          db.createObjectStore("auth_state");
+        }
+      };
+
+      request.onsuccess = function () {
+        const db = request.result;
+        const tx = db.transaction("auth_state", "readwrite");
+        const store = tx.objectStore("auth_state");
+
+        store.put({
+          refreshToken: "ok",
+          activated: true
+        }, "auth_state");
+      };
+
+      alert("Aktywacja udana");
+      window.location.replace("login.html");
+
+    } catch (err) {
+      console.error(err);
+      alert("Błąd Firebase / brak dostępu");
+    }
+  });
 });
