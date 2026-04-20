@@ -1,105 +1,97 @@
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
+  collection,
+  getDocs,
   doc,
-  getDoc,
-  setDoc
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyBnRiQrdboAfjAFoBLj37A8QoIIezqrbVk",
   authDomain: "bobywatelkody.firebaseapp.com",
   projectId: "bobywatelkody",
+  storageBucket: "bobywatelkody.firebasestorage.app",
+  messagingSenderId: "941487075648",
+  appId: "1:941487075648:web:40d8a374d293c16d56caa5"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🔑 LOCAL STORAGE KEY
-const STORAGE_KEY = "device_activated";
 
-// 🚀 jeśli już aktywowany → login
-if (localStorage.getItem(STORAGE_KEY)) {
-  window.location.replace("login.html");
+// 🔥 NAJWAŻNIEJSZE — jeśli już aktywowany → od razu login
+if (localStorage.getItem("activated") === "true") {
+  window.location.href = "login.html";
 }
 
-// 📋 ELEMENTY
-const form = document.getElementById("activateForm");
-const keyInput = document.getElementById("adminKeyInput");
-const nameInput = document.getElementById("deviceLabelInput");
 
-// 🧠 NORMALIZACJA KODU
-function normalizeKey(input) {
-  return input.trim().toUpperCase();
+// 🔥 zapis aktywacji (tylko raz)
+function saveAuth() {
+  const request = indexedDB.open("obywatel_auth", 1);
+
+  request.onupgradeneeded = function (event) {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains("auth_state")) {
+      db.createObjectStore("auth_state");
+    }
+  };
+
+  request.onsuccess = function (event) {
+    const db = event.target.result;
+    const tx = db.transaction("auth_state", "readwrite");
+    const store = tx.objectStore("auth_state");
+
+    store.put({
+      refreshToken: "OK",
+      activated: true
+    }, "auth_state");
+
+    tx.oncomplete = function () {
+      localStorage.setItem("activated", "true"); // 🔥 zapis że już aktywowany
+      window.location.href = "login.html"; // 🔥 i KONIEC activate
+    };
+  };
 }
 
-// 🚀 SUBMIT
-form.addEventListener("submit", async (e) => {
+
+// 🔑 sprawdzanie kodu
+document.getElementById("activateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const key = normalizeKey(keyInput.value);
-  const name = nameInput.value.trim();
+  const key = document.getElementById("adminKeyInput").value.trim();
+  const nick = document.getElementById("deviceLabelInput").value.trim();
 
-  if (!key || !name) {
+  if (!key || !nick) {
     alert("Uzupełnij dane");
     return;
   }
 
   try {
-    const ref = doc(db, "codes", key);
-    const snap = await getDoc(ref);
+    const snapshot = await getDocs(collection(db, "codes"));
+    let found = false;
 
-    console.log("Szukam kodu:", key);
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
 
-    if (!snap.exists()) {
-      alert("Nieprawidłowy kod");
-      return;
-    }
+      if (data.code === key && !data.used) {
+        found = true;
 
-    const data = snap.data();
+        await updateDoc(doc(db, "codes", docSnap.id), {
+          used: true,
+          nick: nick
+        });
 
-    if (data.used) {
-      alert("Kod już użyty");
-      return;
-    }
+        alert("✅ Aktywacja OK");
 
-    // 🔥 oznacz jako użyty
-    await setDoc(ref, {
-      ...data,
-      used: true,
-      usedBy: name,
-      usedAt: Date.now()
-    });
-
-    // 🔥 LOCAL STORAGE
-    localStorage.setItem(STORAGE_KEY, "true");
-    localStorage.setItem("user_key", key);
-
-    // 🔥 INDEXEDDB FIX (usuwa pętlę)
-    const request = indexedDB.open("obywatel_auth", 1);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains("auth_state")) {
-        db.createObjectStore("auth_state");
+        saveAuth();
+        break;
       }
-    };
+    }
 
-    request.onsuccess = () => {
-      const db = request.result;
-      const tx = db.transaction("auth_state", "readwrite");
-      const store = tx.objectStore("auth_state");
-
-      store.put({
-        refreshToken: "ok",
-        activated: true
-      }, "auth_state");
-    };
-
-    alert("Aktywacja udana");
-
-    window.location.replace("login.html");
+    if (!found) {
+      alert("❌ Zły kod");
+    }
 
   } catch (err) {
     console.error(err);
