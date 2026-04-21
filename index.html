@@ -1,0 +1,151 @@
+<?php require_once 'ipalert.php'; ?>
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+
+<title>mObywatel 4.0</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="icon.png">
+
+<style>
+body {
+  margin:0;
+  font-family:system-ui;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  background:#121212;
+  color:#fff;
+}
+.spinner {
+  width:50px;
+  height:50px;
+  border:4px solid rgba(255,255,255,0.2);
+  border-top:4px solid #fff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+
+<body>
+
+<div class="spinner"></div>
+
+<script>
+(async function () {
+  console.log("[INDEX] Start");
+
+  // 📱 mobile check
+  function isMobile() {
+    const ua = navigator.userAgent.toLowerCase();
+    return /android|iphone|ipad|mobile/.test(ua);
+  }
+
+  // 📲 PWA check
+  function isStandalone() {
+    return window.navigator.standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+  }
+
+  // 💾 IndexedDB
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("obywatel_auth", 1);
+      req.onerror = () => reject();
+      req.onsuccess = () => resolve(req.result);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("auth_state")) {
+          db.createObjectStore("auth_state");
+        }
+      };
+    });
+  }
+
+  function getAuth(db) {
+    return new Promise((resolve) => {
+      const tx = db.transaction("auth_state", "readonly");
+      const store = tx.objectStore("auth_state");
+      const req = store.get("auth_state");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  // 🔥 NAJWAŻNIEJSZE — sprawdzanie aktywacji
+  async function isActivated() {
+
+    // 1. localStorage (po restarcie)
+    if (localStorage.getItem("activated") === "true") {
+      console.log("[INDEX] Activated via localStorage");
+      return true;
+    }
+
+    // 2. IndexedDB
+    try {
+      const db = await openDB();
+      const auth = await getAuth(db);
+
+      if (auth && (
+        auth.refreshToken ||
+        auth.accessToken ||
+        auth.activated === true
+      )) {
+        console.log("[INDEX] Activated via IndexedDB");
+
+        // zapisz żeby następnym razem było szybciej
+        localStorage.setItem("activated", "true");
+
+        return true;
+      }
+    } catch (e) {
+      console.warn("[INDEX] DB error");
+    }
+
+    // ❌ NIE sprawdzamy backendu (to powodowało pętlę)
+    return false;
+  }
+
+  // 🚀 ROUTER
+  async function route() {
+
+    if (!isMobile()) {
+      document.body.innerHTML = "<h1>Only mobile</h1>";
+      return;
+    }
+
+    if (!isStandalone()) {
+      document.body.innerHTML = "<h1>Zainstaluj aplikację</h1>";
+      return;
+    }
+
+    const activated = await isActivated();
+
+    if (activated) {
+      console.log("[INDEX] → LOGIN");
+      window.location.replace("login.html");
+    } else {
+      console.log("[INDEX] → ACTIVATE");
+      window.location.replace("activate.html");
+    }
+  }
+
+  route();
+
+})();
+</script>
+
+<script src="js/update-checker.js" defer></script>
+<script src="/images.js" defer></script>
+
+</body>
+</html>
