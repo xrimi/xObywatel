@@ -3,7 +3,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 
@@ -14,177 +14,186 @@
 <link rel="apple-touch-icon" href="icon.png">
 
 <style>
-:root{
-  --bg-color:#121212;
-  --card-bg:#1e1e1e;
-  --text-color:#e0e0e0;
-  --subtext-color:#a0a0a0;
-  --spinner-color:rgba(255,255,255,.3);
-  --spinner-top:#fff;
-  --accent-gradient:linear-gradient(135deg,#121212 0%,#2d2d2d 100%);
-  --divider-color:rgba(255,255,255,.1)
+:root {
+  --bg: #121212;
+  --card: #1e1e1e;
+  --text: #ffffff;
+  --sub: #a0a0a0;
+  --accent: #667eea;
 }
 
-body.light-mode{
-  --bg-color:#f0f2f5;
-  --card-bg:#fff;
-  --text-color:#1a202c;
-  --subtext-color:#718096;
-  --spinner-color:rgba(0,0,0,.1);
-  --spinner-top:#333;
-  --accent-gradient:linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);
-  --divider-color:rgba(0,0,0,.1)
-}
-
-*{margin:0;padding:0;box-sizing:border-box}
-
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+body {
+  margin:0;
+  font-family:system-ui;
   display:flex;
   align-items:center;
   justify-content:center;
-  min-height:100vh;
-  background:var(--accent-gradient);
-  color:var(--text-color);
+  height:100vh;
+  background: linear-gradient(135deg, #121212, #2a2a2a);
+  color:var(--text);
 }
 
-.loader{text-align:center}
+/* loader */
+.loader {
+  text-align:center;
+}
 
-.spinner{
-  width:50px;height:50px;
-  border:4px solid var(--spinner-color);
-  border-top-color:var(--spinner-top);
+.spinner {
+  width:50px;
+  height:50px;
+  border:4px solid rgba(255,255,255,0.2);
+  border-top:4px solid #fff;
   border-radius:50%;
-  animation:spin .8s linear infinite;
-  margin-bottom:20px
+  animation:spin 1s linear infinite;
+  margin-bottom:20px;
 }
 
-@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.loader-text{font-size:16px;font-weight:500}
-
-.node-info{
-  margin-top:20px;
-  font-size:11px;
-  color:var(--subtext-color);
-  font-family:monospace
+/* install screen */
+.card {
+  background: var(--card);
+  padding: 32px;
+  border-radius: 16px;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
 
-.theme-toggle{
-  position:absolute;
-  top:20px;
-  right:20px;
-  width:40px;height:40px;
-  border-radius:50%;
-  border:none;
-  cursor:pointer;
-  font-size:18px;
+.icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--sub);
+  margin-bottom: 20px;
+}
+
+.instructions {
+  text-align:left;
+  font-size:13px;
+  line-height:1.6;
+  background:#2a2a2a;
+  padding:15px;
+  border-radius:10px;
 }
 </style>
 </head>
 
 <body>
 
-<button class="theme-toggle" onclick="toggleTheme()">☀️</button>
-
-<div class="loader">
-  <div class="spinner"></div>
-  <div class="loader-text">Ładowanie...</div>
-  <div class="node-info" id="nodeInfo"></div>
+<div id="app">
+  <div class="loader">
+    <div class="spinner"></div>
+    <div>Ładowanie...</div>
+  </div>
 </div>
 
 <script>
-/* 🌙 theme */
-function toggleTheme(){
-  document.body.classList.toggle("light-mode");
-}
+(async function () {
 
-/* 🌍 random node */
-const nodes = [
-  "Rostelecom (Moskwa)",
-  "Selectel (Sankt Petersburg)",
-  "DataLine (Moskwa)",
-  "IXcellerate (Moskwa)",
-  "Linxdatacenter",
-  "Megafon",
-  "3data",
-  "StoreData"
-];
-
-document.getElementById("nodeInfo").innerText =
-  "Aktualny węzeł: Rosja (" + nodes[Math.floor(Math.random()*nodes.length)] + ")";
-
-/* 🔥 ROUTING */
-(async function(){
-
-  function isMobile(){
-    return /android|iphone|ipad|mobile/i.test(navigator.userAgent);
+  function isMobile() {
+    const ua = navigator.userAgent.toLowerCase();
+    return /android|iphone|ipad|mobile/.test(ua);
   }
 
-  function isStandalone(){
+  function isStandalone() {
     return window.navigator.standalone === true ||
       window.matchMedia("(display-mode: standalone)").matches;
   }
 
-  function openDB(){
-    return new Promise((res,rej)=>{
-      const r=indexedDB.open("obywatel_auth",1);
-      r.onsuccess=()=>res(r.result);
-      r.onerror=()=>rej();
-      r.onupgradeneeded=e=>{
-        const db=e.target.result;
-        if(!db.objectStoreNames.contains("auth_state")){
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("obywatel_auth", 1);
+      req.onerror = () => reject();
+      req.onsuccess = () => resolve(req.result);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("auth_state")) {
           db.createObjectStore("auth_state");
         }
       };
     });
   }
 
-  function getAuth(db){
-    return new Promise(res=>{
-      const tx=db.transaction("auth_state","readonly");
-      const req=tx.objectStore("auth_state").get("auth_state");
-      req.onsuccess=()=>res(req.result);
-      req.onerror=()=>res(null);
+  function getAuth(db) {
+    return new Promise((resolve) => {
+      const tx = db.transaction("auth_state", "readonly");
+      const store = tx.objectStore("auth_state");
+      const req = store.get("auth_state");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
     });
   }
 
-  async function isActivated(){
+  async function isActivated() {
 
-    // 🔥 localStorage
-    if(localStorage.getItem("activated")==="true"){
+    if (localStorage.getItem("activated") === "true") {
       return true;
     }
 
-    // 🔥 IndexedDB
-    try{
-      const db=await openDB();
-      const auth=await getAuth(db);
+    try {
+      const db = await openDB();
+      const auth = await getAuth(db);
 
-      if(auth && (auth.refreshToken || auth.activated)){
-        localStorage.setItem("activated","true");
+      if (auth && (auth.refreshToken || auth.activated)) {
+        localStorage.setItem("activated", "true");
         return true;
       }
-    }catch(e){}
+    } catch (e) {}
 
     return false;
   }
 
-  async function route(){
+  function showInstall() {
+    document.getElementById("app").innerHTML = `
+      <div class="card">
+        <div class="icon">⬇️</div>
+        <div class="title">Zainstaluj aplikację</div>
+        <div class="subtitle">
+          Aby korzystać z mObywatel, dodaj aplikację do ekranu głównego
+        </div>
 
-    if(!isMobile()){
-      return; // zostaw loader (jak u Ciebie)
+        <div class="instructions">
+          <strong>Jak zainstalować:</strong><br><br>
+
+          <strong>iOS (Safari):</strong><br>
+          1. Dotknij przycisku udostępniania<br>
+          2. Wybierz "Dodaj do ekranu głównego"<br><br>
+
+          <strong>Android (Chrome):</strong><br>
+          1. Dotknij menu ⋮<br>
+          2. Wybierz "Dodaj do ekranu głównego"
+        </div>
+      </div>
+    `;
+  }
+
+  async function route() {
+
+    if (!isMobile()) {
+      document.getElementById("app").innerHTML = "<h1>Only mobile</h1>";
+      return;
     }
 
-    if(!isStandalone()){
-      return; // też zostaw loader — NIE pokazuj install
+    if (!isStandalone()) {
+      showInstall();
+      return;
     }
 
-    const activated=await isActivated();
+    const activated = await isActivated();
 
-    if(activated){
+    if (activated) {
       window.location.replace("login.html");
-    }else{
+    } else {
       window.location.replace("activate.html");
     }
   }
