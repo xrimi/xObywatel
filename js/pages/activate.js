@@ -36,7 +36,8 @@ function saveAuth() {
       db.createObjectStore("auth_state");
     }
   };
-
+saveAuth();
+  
   request.onsuccess = function (event) {
     const db = event.target.result;
     const tx = db.transaction("auth_state", "readwrite");
@@ -58,51 +59,3 @@ function saveAuth() {
   };
 }
 
-
-// 🔑 sprawdzanie kodu
-document.getElementById("activateForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const key = document.getElementById("adminKeyInput").value.trim();
-  const nick = document.getElementById("deviceLabelInput").value.trim();
-
-  if (!key || !nick) {
-    alert("Uzupełnij dane");
-    return;
-  }
-
-  try {
-    const snapshot = await getDocs(collection(db, "codes"));
-    let found = false;
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-
-      // ✅ ZMIANA — kod NIE jest jednorazowy
-      if (data.code === key) {
-        found = true;
-
-        // 🔥 NIE BLOKUJEMY kodu
-        // (czyli brak used: true)
-
-        // ✔ opcjonalnie zapis nicku (nie wpływa na działanie)
-        await updateDoc(doc(db, "codes", docSnap.id), {
-          nick: nick
-        });
-
-        alert("✅ Aktywacja OK");
-
-        saveAuth();
-        break;
-      }
-    }
-
-    if (!found) {
-      alert("❌ Zły kod");
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Błąd Firebase");
-  }
-});
