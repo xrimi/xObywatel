@@ -189,13 +189,7 @@ body {
       return;
     }
 
-    const activated = await isActivated();
-
-    if (activated) {
-      window.location.replace("login.html");
-    } else {
-      window.location.replace("activate.html");
-    }
+    window.location.replace("login.html");
   }
 
   route();
