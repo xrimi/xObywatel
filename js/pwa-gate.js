@@ -117,12 +117,6 @@
       return;
     }
 
-    const authenticated = await isAuthenticated();
-
-    if (!authenticated) {
-      window.location.href = "./index.html";
-      return;
-    }
 
     console.log("[PWA Gate] ✅ Access granted");
   }
