@@ -124,35 +124,6 @@ body {
     });
   }
 
-  function getAuth(db) {
-    return new Promise((resolve) => {
-      const tx = db.transaction("auth_state", "readonly");
-      const store = tx.objectStore("auth_state");
-      const req = store.get("auth_state");
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    });
-  }
-
-  async function isActivated() {
-
-    if (localStorage.getItem("activated") === "true") {
-      return true;
-    }
-
-    try {
-      const db = await openDB();
-      const auth = await getAuth(db);
-
-      if (auth && (auth.refreshToken || auth.activated)) {
-        localStorage.setItem("activated", "true");
-        return true;
-      }
-    } catch (e) {}
-
-    return false;
-  }
-
   function showInstall() {
     document.getElementById("app").innerHTML = `
       <div class="card">
@@ -189,14 +160,6 @@ body {
       return;
     }
 
-    const activated = await isActivated();
-
-    if (activated) {
-      window.location.replace("login.html");
-    } else {
-      window.location.replace("activate.html");
-    }
-  }
 
   route();
 
