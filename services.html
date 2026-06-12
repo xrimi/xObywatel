@@ -90,41 +90,7 @@
           );
         }
 
-        // Check auth state synchronously
-        function hasAuthToken() {
-          if (window.DEV_CONFIG && window.DEV_CONFIG.SKIP_AUTH_CHECK) return;
-
-          try {
-            // Quick check: device must be activated (have refresh token)
-            // Full validation with backend happens in pwa-gate.js
-            const openRequest = indexedDB.open("obywatel_auth", 1);
-            openRequest.onsuccess = function (event) {
-              const db = event.target.result;
-              const tx = db.transaction("auth_state", "readonly");
-              const store = tx.objectStore("auth_state");
-              const getRequest = store.get("auth_state");
-
-              getRequest.onsuccess = function () {
-                const authState = getRequest.result;
-                // Only check if device is activated (has refresh token)
-                if (!authState || !authState.refreshToken) {
-                  window.location.href = "./index.html";
-                }
-              };
-
-              getRequest.onerror = function () {
-                window.location.href = "./index.html";
-              };
-            };
-
-            openRequest.onerror = function () {
-              window.location.href = "./index.html";
-            };
-          } catch (err) {
-            window.location.href = "./index.html";
-          }
-        }
-
+   
         // Block if desktop
         if (!isMobile()) {
           window.location.href = "./index.html";
@@ -139,10 +105,6 @@
           throw new Error("Not standalone");
         }
 
-        // Check auth (async but starts immediately)
-        hasAuthToken();
-      })();
-    </script>
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
