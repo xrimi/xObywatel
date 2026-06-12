@@ -8,7 +8,7 @@ window.DEV_CONFIG = {
   DEV_MODE: false,
 
   // Opcje deweloperskie
-  SKIP_AUTH_CHECK: false, // Pomija sprawdzanie autentykacji
+  SKIP_AUTH_CHECK: true, // Pomija sprawdzanie autentykacji
   SKIP_PWA_CHECK: false, // Pomija sprawdzanie trybu PWA
   SKIP_MOBILE_CHECK: false, // Pomija sprawdzanie urządzenia mobilnego
   ALLOW_DESKTOP: false, // Pozwala na dostęp z desktopa
