@@ -39,49 +39,7 @@
   }
 
   // 🔥 NAPRAWIONA funkcja — BEZ konfliktu i BEZ pętli
-  async function isAuthenticated() {
-    try {
-      // ✔ 1. localStorage (najpewniejsze po restarcie)
-      if (localStorage.getItem("activated") === "true") {
-        console.log("[PWA Gate] Activated via localStorage");
-        return true;
-      }
-
-      // ✔ 2. session cache
-      const sessionValidated = sessionStorage.getItem("auth_validated");
-      if (sessionValidated === "true") {
-        console.log("[PWA Gate] Session already validated");
-        return true;
-      }
-
-      // ✔ 3. IndexedDB
-      const db = await openDB();
-      const authState = await getFromDB(db, "auth_state");
-
-      if (!authState) {
-        console.log("[PWA Gate] Brak auth_state");
-        return false;
-      }
-
-      if (
-        authState.refreshToken ||
-        authState.accessToken ||
-        authState.activated === true
-      ) {
-        console.log("[PWA Gate] ✅ Urządzenie aktywowane");
-
-        sessionStorage.setItem("auth_validated", "true");
-
-        return true;
-      }
-
-      return false;
-    } catch (err) {
-      console.error("Auth check failed:", err);
-      return false;
-    }
-  }
-
+ 
   // IndexedDB helpers
   function openDB() {
     return new Promise((resolve, reject) => {
